@@ -1,0 +1,6 @@
+build/
+__pycache__/
+*.pyc
+# vendor factory images (ST copyright) and private planning notes stay local
+backup/
+research/
