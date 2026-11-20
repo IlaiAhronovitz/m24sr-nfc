@@ -1,0 +1,22 @@
+# recovered_22.at - congestion reject (#22), then registration while roaming.
+# The cause stays in the record as evidence; attempts reset to 0.
+# Format: see denied_15.at.
+fw | 1.0.0-rc2
+battery | 3297
+@ 100
+SYNTHETIC | +CEREG: 2,"0B11","00ABCDE",9
+@ 103
+SYNTHETIC | +CEREG: 3,"0B11","00ABCDE",9,0,22
+@ 1903
+SYNTHETIC | +CEREG: 2,"0B11","00ABCDE",9
+@ 1910
+SYNTHETIC | +CEREG: 5,"0B11","00ABCDE",9,,,"00000011","00100010"
+SYNTHETIC | %CEER: "ESM","PDN CONNECT","REJECT",27,"Missing or unknown APN"
+SYNTHETIC | AT+CEDRXRDP
+SYNTHETIC | +CEDRXRDP: 5,"1001","0101","0001"
+SYNTHETIC | OK
+SYNTHETIC | AT+CESQ
+SYNTHETIC | +CESQ: 99,99,255,255,255,4
+SYNTHETIC | OK
+expect-text | REGISTERED roaming | EMM #22 Congestion | ESM #27 Missing or unknown APN | NB-IoT RSRP -137 dBm | TAC 0B11 CI 00ABCDE | PSM req -, granted 7200/6 s | eDRX req 163.84 s, granted 81.92 s | fw 1.0.0-rc2 | 3.30 V | uptime 0h31m
+expect-counts | unknown=0 malformed=0 too_long=0

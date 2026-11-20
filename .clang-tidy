@@ -1,0 +1,27 @@
+# clang-tidy 21 configuration: the CERT C and bug-finding check set of the quality standard
+# (docs/CODING-STANDARD.md, section 2). It is the same set as the standard's command line:
+#   -checks='-*,bugprone-*,cert-*,clang-analyzer-*,misc-*,performance-*,portability-*,readability-*,
+#            -readability-magic-numbers,-readability-identifier-length,-misc-include-cleaner,
+#            -bugprone-easily-swappable-parameters,-readability-avoid-unconditional-preprocessor-if'
+#   -config="{CheckOptions: {readability-function-cognitive-complexity.Threshold: 25,
+#                            readability-function-size.LineThreshold: 80}}"  -warnings-as-errors='*'
+# Editors (clangd) and tools/quality.sh read this file. Do not disable a check here to silence a
+# finding: fix it, or record a deviation (docs/MISRA-COMPLIANCE.md) and use a NOLINT with its ID.
+Checks: >-
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -misc-include-cleaner,
+  -bugprone-easily-swappable-parameters,
+  -readability-avoid-unconditional-preprocessor-if
+WarningsAsErrors: '*'
+CheckOptions:
+  readability-function-cognitive-complexity.Threshold: 25
+  readability-function-size.LineThreshold: 80

@@ -1,0 +1,12 @@
+# Records: docs/deviations/common.md (C-2 Rule 8.7, C-3 Rule 2.5). C-1 (Rule 15.5) needs no line here:
+# the rule is disapplied project-wide (DISAPPLIED in tools/quality.sh).
+# One line = one rule in one file. Do not add a line without a record.
+misra-c2012-8.7:src/ndef.c
+misra-c2012-8.7:src/m24sr.c
+misra-c2012-8.7:src/crc_a.c
+misra-c2012-8.7:src/lc/record.c
+misra-c2012-8.7:src/lc/at_parse.c
+misra-c2012-2.5:src/ndef.h
+misra-c2012-2.5:src/m24sr.h
+misra-c2012-2.5:src/lc/record.h
+misra-c2012-2.5:src/lc/at_parse.h

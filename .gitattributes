@@ -1,0 +1,15 @@
+# Line endings: LF in the repository and in every checkout, Windows included. tools/quality.sh runs in
+# WSL or Linux bash, which fails on CRLF ($'\r': command not found).
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.c  text eol=lf
+*.h  text eol=lf
+*.s  text eol=lf
+*.ld text eol=lf
+*.md text eol=lf
+# Binaries: firmware images, raw result blocks, figures.
+*.bin binary
+*.elf binary
+*.png binary
+*.pdf binary

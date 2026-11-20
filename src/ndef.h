@@ -1,16 +1,28 @@
 /* ndef.h - NDEF records (NFC Forum NDEF 1.0, RTD URI 1.0, RTD Text 1.0).
  * Parse and build short records of the well-known types URI ("U") and
  * Text ("T"); other records are reported by type only. Host-testable. */
-#pragma once
+#ifndef M24SR_NFC_NDEF_H
+#define M24SR_NFC_NDEF_H
+
 #include <stdint.h>
 
-#define NDEF_TNF_EMPTY      0u
-#define NDEF_TNF_WELL_KNOWN 1u
-#define NDEF_TNF_MIME       2u
+/* TNF values, NDEF 1.0 section 3.2.6. */
+#define NDEF_TNF_EMPTY      0U
+#define NDEF_TNF_WELL_KNOWN 1U
+#define NDEF_TNF_MIME       2U
+#define NDEF_TNF_UNKNOWN    5U
+#define NDEF_TNF_UNCHANGED  6U
+
+/* ndef_parse_record() results */
+#define NDEF_ERR_TRUNCATED  (-1)
+#define NDEF_ERR_CHUNKED    (-2)  /* CF set: chunked records are not supported */
+#define NDEF_ERR_HEADER     (-3)  /* lengths or TNF not allowed by NDEF 1.0 3.2.6 */
 
 typedef struct {
     uint8_t        tnf;
-    uint8_t        mb, me, sr;       /* message begin, message end, short record */
+    uint8_t        mb;               /* message begin */
+    uint8_t        me;               /* message end */
+    uint8_t        sr;               /* short record */
     const uint8_t *type;
     uint8_t        type_len;
     const uint8_t *id;
@@ -20,7 +32,7 @@ typedef struct {
 } ndef_record_t;
 
 /* Parse the record starting at msg[*pos]; on success advance *pos past it.
- * Returns 0, or a negative code: -1 truncated, -2 chunked (unsupported). */
+ * Returns 0, or a negative NDEF_ERR_* code. */
 int ndef_parse_record(const uint8_t *msg, uint32_t len, uint32_t *pos, ndef_record_t *rec);
 
 /* Well-known URI record: expand the prefix code into out (NUL-terminated).
@@ -37,3 +49,5 @@ int ndef_text_get(const ndef_record_t *rec, char *lang, uint32_t lang_size,
  * or -1 if it does not fit in out (or is too long for a short record). */
 int ndef_build_uri(const char *uri, uint8_t *out, uint32_t out_size);
 int ndef_build_text(const char *lang, const char *text, uint8_t *out, uint32_t out_size);
+
+#endif /* M24SR_NFC_NDEF_H */
