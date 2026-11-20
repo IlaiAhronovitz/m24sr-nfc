@@ -5,14 +5,19 @@
  *
  * The bus is a small interface so the whole layer runs on the host against a
  * mock tag (tests/), and on the board against the I2C2 driver. */
-#pragma once
+#ifndef M24SR_NFC_M24SR_H
+#define M24SR_NFC_M24SR_H
+
 #include <stdint.h>
 
-#define M24SR_ADDR          0x56u     /* 7-bit; device select 0xAC / 0xAD */
-#define M24SR_FILE_CC       0xE103u
-#define M24SR_FILE_SYSTEM   0xE101u
-#define M24SR_FILE_NDEF     0x0001u   /* default; the CC file has the real one */
-#define M24SR_CHUNK         64u       /* bytes per ReadBinary / UpdateBinary */
+#define M24SR_ADDR          0x56U     /* 7-bit; device select 0xAC / 0xAD */
+#define M24SR_FILE_CC       0xE103U
+#define M24SR_FILE_SYSTEM   0xE101U
+#define M24SR_FILE_NDEF     0x0001U   /* default; the CC file has the real one */
+#define M24SR_CHUNK         64U       /* bytes per ReadBinary / UpdateBinary */
+/* ISO/IEC 7816-4 READ/UPDATE BINARY with P1 bit 8 = 0: a 15-bit offset.
+ * offset + length may not pass this (bit 8 = 1 would select an SFI). */
+#define M24SR_OFFSET_END    0x8000U
 
 /* Bus results: 0 ok, M24SR_NACK while the tag is busy (it NACKs its address),
  * anything else is a bus error. */
@@ -21,7 +26,7 @@
 typedef struct {
     int  (*write)(void *ctx, const uint8_t *buf, uint32_t len);
     int  (*read)(void *ctx, uint8_t *buf, uint32_t len);
-    void (*delay_ms)(void *ctx, uint32_t ms);
+    void (*wait_ms)(void *ctx, uint32_t ms);
     void *ctx;
 } m24sr_bus_t;
 
@@ -52,13 +57,20 @@ int m24sr_deselect(m24sr_t *d);
 
 int m24sr_select_ndef_app(m24sr_t *d);
 int m24sr_select_file(m24sr_t *d, uint16_t file_id);
+/* offset + len must not pass M24SR_OFFSET_END (else M24SR_ERR_ARG). */
 int m24sr_read_binary(m24sr_t *d, uint16_t offset, uint8_t *buf, uint32_t len);
 int m24sr_update_binary(m24sr_t *d, uint16_t offset, const uint8_t *data, uint32_t len);
 
 /* NFC Forum Type 4 Tag capability container (the first 15 bytes of E103). */
 typedef struct {
-    uint16_t cclen, mle, mlc, ndef_file_id, ndef_max;
-    uint8_t  version, read_access, write_access;
+    uint16_t cclen;
+    uint16_t mle;
+    uint16_t mlc;
+    uint16_t ndef_file_id;
+    uint16_t ndef_max;
+    uint8_t  version;
+    uint8_t  read_access;
+    uint8_t  write_access;
 } m24sr_cc_t;
 
 int m24sr_parse_cc(const uint8_t *cc, uint32_t len, m24sr_cc_t *out);
@@ -68,3 +80,5 @@ int m24sr_parse_cc(const uint8_t *cc, uint32_t len, m24sr_cc_t *out);
  * first and to the real length last, so a reader never sees a half message. */
 int m24sr_read_ndef(m24sr_t *d, uint16_t file_id, uint8_t *buf, uint32_t buf_size);
 int m24sr_write_ndef(m24sr_t *d, uint16_t file_id, const uint8_t *msg, uint32_t len);
+
+#endif /* M24SR_NFC_M24SR_H */

@@ -9,9 +9,85 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install the Arm GNU toolchain
-        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
+      # gcc 11 for the host tests: the compiler the quality gate and the local runs use. Ubuntu 24.04's
+      # default gcc 13 adds flow-based -O1 warnings that no run has checked yet.
+      - name: Install gcc 11
+        run: sudo apt-get update && sudo apt-get install -y gcc-11
+      # Arm GNU Toolchain 14.2.Rel1: the version every local run and every published number uses (Ubuntu's
+      # apt package is 13.2). The SHA-256 is Arm's published value for this exact file, pinned here.
+      - name: Install the Arm GNU Toolchain 14.2.Rel1 (pinned)
+        env:
+          ARM_TC: arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi
+          ARM_TC_SHA256: 62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823
+        run: |
+          curl -fsSL -o "/tmp/$ARM_TC.tar.xz" "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/$ARM_TC.tar.xz"
+          echo "$ARM_TC_SHA256  /tmp/$ARM_TC.tar.xz" | sha256sum -c -
+          sudo tar -xf "/tmp/$ARM_TC.tar.xz" -C /opt
+          echo "/opt/$ARM_TC/bin" >> "$GITHUB_PATH"
+          "/opt/$ARM_TC/bin/arm-none-eabi-gcc" --version | head -1
       - name: Host tests
-        run: python3 build.py test
+        run: HOSTCC=gcc-11 python3 build.py test
       - name: Build the firmware
-        run: GCC_BIN=/usr/bin python3 build.py build
+        run: GCC_BIN=/opt/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi/bin python3 build.py build
+
+  # The quality gate (docs/CODING-STANDARD.md): strict warnings, MISRA C:2012, CERT C, sanitizers and
+  # coverage, all through tools/quality.sh. Required: no continue-on-error.
+  quality:
+    runs-on: ubuntu-24.04
+    env:
+      CPPCHECK_VERSION: "2.16.0"
+      LLVM_VERSION: "21"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gcc 11 and cppcheck's build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-11 cmake python3
+      # Arm GNU Toolchain 14.2.Rel1: the version every local run and every published number uses (Ubuntu's
+      # apt package is 13.2). The SHA-256 is Arm's published value for this exact file, pinned here.
+      - name: Install the Arm GNU Toolchain 14.2.Rel1 (pinned)
+        env:
+          ARM_TC: arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi
+          ARM_TC_SHA256: 62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823
+        run: |
+          curl -fsSL -o "/tmp/$ARM_TC.tar.xz" "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/$ARM_TC.tar.xz"
+          echo "$ARM_TC_SHA256  /tmp/$ARM_TC.tar.xz" | sha256sum -c -
+          sudo tar -xf "/tmp/$ARM_TC.tar.xz" -C /opt
+          echo "/opt/$ARM_TC/bin" >> "$GITHUB_PATH"
+          "/opt/$ARM_TC/bin/arm-none-eabi-gcc" --version | head -1
+      - name: Install clang, clang-tidy and llvm-cov ${{ env.LLVM_VERSION }} (apt.llvm.org)
+        run: |
+          wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+          sudo bash /tmp/llvm.sh "$LLVM_VERSION"
+          sudo apt-get install -y "clang-tidy-$LLVM_VERSION" "llvm-$LLVM_VERSION" "libclang-rt-$LLVM_VERSION-dev"
+      # Ubuntu 24.04 ships cppcheck 2.13; the standard pins 2.16 (its MISRA addon and checks differ).
+      # Build the release tag once and cache it, keyed on the version.
+      - name: Cache cppcheck ${{ env.CPPCHECK_VERSION }}
+        id: cppcheck-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/cppcheck
+          key: cppcheck-${{ env.CPPCHECK_VERSION }}-ubuntu-24.04-v1
+      - name: Build cppcheck ${{ env.CPPCHECK_VERSION }} from its release tag
+        if: steps.cppcheck-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL "https://github.com/danmar/cppcheck/archive/refs/tags/${CPPCHECK_VERSION}.tar.gz" | tar xz -C /tmp
+          cmake -S "/tmp/cppcheck-${CPPCHECK_VERSION}" -B /tmp/cppcheck-build -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_MATCHCOMPILER=ON -DHAVE_RULES=OFF -DBUILD_GUI=OFF \
+            -DCMAKE_INSTALL_PREFIX="$HOME/cppcheck" -DFILESDIR="$HOME/cppcheck/share/cppcheck"
+          cmake --build /tmp/cppcheck-build -j"$(nproc)"
+          cmake --install /tmp/cppcheck-build
+      - name: Check the tool versions
+        run: |
+          echo "$HOME/cppcheck/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/cppcheck/bin:$PATH"
+          cppcheck --version | tee /dev/stderr | grep -qx "Cppcheck ${CPPCHECK_VERSION}"
+          printf 'int main(void) { return 0; }\n' > /tmp/probe.c
+          cppcheck --addon=misra --quiet --error-exitcode=1 /tmp/probe.c   # the MISRA addon is found
+          gcc-11 --version | head -1; arm-none-eabi-gcc --version | head -1
+          "clang-$LLVM_VERSION" --version | head -1; "clang-tidy-$LLVM_VERSION" --version | head -2
+      # The runner's high mmap entropy (vm.mmap_rnd_bits=32) crashes gcc 11's ASan at start-up.
+      - name: Lower mmap entropy for ASan
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - name: Run the quality gate
+        run: bash tools/quality.sh

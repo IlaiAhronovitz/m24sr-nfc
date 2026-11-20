@@ -1,0 +1,27 @@
+# registered_psm.at - attach succeeds with PSM granted (+CEREG n=4).
+# Format: see denied_15.at.
+@ 0
+SYNTHETIC | AT+CEREG=4
+SYNTHETIC | OK
+@ 40
+SYNTHETIC | +CEREG: 2
+@ 45
+# "00C3", "00100100" (4 min) and "01000111" (70 h) are the worked examples
+# in TS 27.007 V19.6.0 clause 10.1.22; the line around them is assembled by hand.
+FROM-SPEC | +CEREG: 1,"00C3","0001F3A1",7,,,"00100100","01000111"
+SYNTHETIC | AT+COPS?
+SYNTHETIC | +COPS: 0,2,"00101",7
+SYNTHETIC | OK
+SYNTHETIC | AT+CEDRXRDP
+SYNTHETIC | +CEDRXRDP: 0
+SYNTHETIC | OK
+# Murata %MEAS="8" (Table 3-3): RSRP dBm, RSRQ dB, SINR dB.
+SYNTHETIC | AT%MEAS="8"
+SYNTHETIC | %MEAS: Signal Quality: RSRP = -95, RSRQ = -11, SINR = 12, RSSI = -70
+SYNTHETIC | OK
+@ 3725
+SYNTHETIC | AT+CPSMS?
+SYNTHETIC | +CPSMS: 1,,,"00000110","00000101"
+SYNTHETIC | OK
+expect-text | REGISTERED home | LTE RSRP -95 dBm RSRQ -11 dB SNR 12 dB | PLMN 001-01 TAC 00C3 CI 001F3A1 | PSM req 3600/10 s, granted 252000/240 s | eDRX off | uptime 1h02m
+expect-counts | unknown=0 malformed=0 too_long=0

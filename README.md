@@ -13,6 +13,7 @@ mock tag.
 | Framing | `src/m24sr.c`, `src/crc_a.c` | I-blocks with a toggling block number, S-blocks for DESELECT and WTX, CRC_A (ISO/IEC 14443-3), and polling while the tag NACKs its address. |
 | Commands | `src/m24sr.c` | ISO 7816-4: Select application and file, ReadBinary, UpdateBinary. GetI2Csession and KillRFsession for the I2C/RF token. Capability container parsing. |
 | NDEF | `src/ndef.c` | Record parser (short and long records, ID field). URI records with the 36 RTD URI prefixes, and UTF-8 Text records, both built and decoded. |
+| Last Checkpoint | `src/lc/` | A portable library, not linked into this firmware yet: a bounded AT-response parser (3GPP TS 27.007) and a fixed-size diagnostic record for LTE-M/NB-IoT devices, with a text summary and a CRC-checked binary form. See `tests/lc/README.md`. |
 
 When writing a message, NLEN is set to 0 first and to the real length last, so a
 phone never reads half a message.
@@ -75,15 +76,18 @@ the I2C session and the deselect handover to the RF side, which the phone reads.
 ## Build, test, run
 
 ```
-python build.py test      # host tests: CRC_A vectors, NDEF codec, M24SR flow vs mock tag
+python build.py test      # host tests: CRC_A vectors, NDEF codec, M24SR flow vs mock tag, src/lc
+python build.py quality   # the quality gate: MISRA C, CERT C, strict warnings, sanitizers, coverage
 python build.py run       # build, flash, print the report from the board
 python build.py read      # read the report again
 python build.py restore   # factory demo back
 ```
 
 The tools are the Arm GNU Toolchain 14.2, xPack OpenOCD 0.12, a host gcc and
-Python 3. CI builds the firmware and runs the host tests
-(`.github/workflows/ci.yml`).
+Python 3; the quality gate also needs gcc 11, clang 21 and cppcheck 2.16 (Linux, or WSL on Windows).
+CI builds the firmware, runs the host tests, and runs the quality gate as a required job
+(`.github/workflows/ci.yml`). The coding standard is `docs/CODING-STANDARD.md`; the MISRA C
+compliance record and the deviations are in `docs/MISRA-COMPLIANCE.md`.
 
 ## Next
 

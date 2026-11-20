@@ -1,0 +1,15 @@
+# Records: docs/deviations/target.md (T-1 Rule 11.4, T-3 Rules 21.2/11.5/8.7, T-4 Rule 8.7).
+# One line = one rule in one file. Do not add a line without a record.
+# T-1: memory-mapped registers (casts in regs.h, expanded where a register is used)
+misra-c2012-11.4:src/regs.h
+misra-c2012-11.4:src/i2c.c
+misra-c2012-11.4:src/system.c
+misra-c2012-11.4:src/report.c
+misra-c2012-11.4:src/main.c
+# T-3: libmin.c, the memset/memcpy that GCC may call in a -nostdlib build
+misra-c2012-21.2:src/libmin.c
+misra-c2012-11.5:src/libmin.c
+misra-c2012-8.7:src/libmin.c
+# T-4: functions entered only from startup.s (vector table, fault entry)
+misra-c2012-8.7:src/system.c
+misra-c2012-8.7:src/report.c

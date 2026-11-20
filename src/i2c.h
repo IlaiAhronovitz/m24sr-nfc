@@ -1,7 +1,9 @@
 /* i2c.h - polled I2C2 master on PB10 (SCL) / PB11 (SDA), 100 kHz, from the
  * 8 MHz HSI. Returns 0, I2C_NACK if the address was not acknowledged (the
  * M24SR does that while busy), or a negative error. */
-#pragma once
+#ifndef M24SR_NFC_I2C_H
+#define M24SR_NFC_I2C_H
+
 #include <stdint.h>
 
 #define I2C_NACK      (-1)
@@ -15,4 +17,7 @@ int i2c2_write(uint8_t addr7, const uint8_t *buf, uint32_t len);
 int i2c2_read(uint8_t addr7, uint8_t *buf, uint32_t len);
 
 /* Counters for the results block. */
-extern uint32_t g_i2c_errors, g_i2c_nacks;
+extern uint32_t g_i2c_errors;
+extern uint32_t g_i2c_nacks;
+
+#endif /* M24SR_NFC_I2C_H */
